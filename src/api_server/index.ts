@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
-import { isValidRequestObject } from '../utils/checkers';
+import { isPlayerObject, isValidPlayerObject, isValidRequestObject } from '../utils/checkers';
 
-import { ClientRequest } from '../interfaces';
+import { ClientObj, ClientRequest, RegResponseData, ResponseData } from '../interfaces';
 import { getJsonString } from '../utils/convertors';
 
 const DEFAULT_WS_PORT = 3000;
@@ -44,13 +44,13 @@ function handleClientRequest(message: WebSocket.RawData, ws: WebSocket): void {
   }
 
   if (isValidRequestObject(clientMessageObj)) {
-    const response = getResponseMessage(clientMessageObj as ClientRequest);
+    const response = getResponse(clientMessageObj as ClientRequest);
     ws.send(response);
     console.log(`Server response with message: ${response}`);
   }
 }
 
-function getResponseMessage(clientMessage: ClientRequest): string {
+function getResponse(clientMessage: ClientRequest): string {
   switch(clientMessage.type) {
     case 'reg': {
       return getRegResponseMessage(clientMessage);
@@ -63,7 +63,58 @@ function getResponseMessage(clientMessage: ClientRequest): string {
 }
 
 function getRegResponseMessage(clientMessage: ClientRequest): string {
+  const player = (typeof(clientMessage.data) === 'string')
+    ? JSON.parse(clientMessage.data)
+    : clientMessage.data;
+
+  if (!isPlayerObject(player)) {
+    const failMessage = 'recived data isn`t a Player object';
+    const failResponseData = getRegResponseData('not found', failMessage)
+
+    return getResponseStr(clientMessage, failResponseData);
+  }
+
+  if (!isValidPlayerObject(player)) {
+    const failMessage = 'Invalid format of login or password';
+    const failResponseData = getRegResponseData(player.name, failMessage)
+
+    return getResponseStr(clientMessage, failResponseData);
+  }
+
   return getJsonString('Cool response!!!');
 }
 
+function getResponseStr(clientMessage: ClientObj, data: ResponseData): string {
+  const response = {
+    ...clientMessage,
+    data: data
+  }
+
+  return getJsonString(response);
+}
+
+function getRegResponseData(name: string, errorText: string): RegResponseData {
+  return {
+    name: name,
+    index: 0,
+    error: !!errorText,
+    errorText: errorText
+  }
+}
+
 export default wsServer;
+
+
+/*
+{
+    type: "reg",
+    data:
+        {
+            name: <string>,
+            index: <number>,
+            error: <bool>,
+            errorText: <string>,
+        },
+    id: 0,
+}
+*/

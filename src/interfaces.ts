@@ -17,15 +17,28 @@ type ClientObjTypes = 'reg'
   | 'finish';
 
 interface ClientRequest extends ClientObj {
-  data: LoginRequestData,
+  data: Player | string,
 };
 
-interface LoginRequestData {
+interface Player {
   name: string,
   password: string,
 }
 
+type ResponseData = RegResponseData;
+
+interface RegResponseData {
+  name: string,
+  index: number,
+  error: boolean,
+  errorText: string,
+}
+
 export type {
   ClientObj,
-  ClientRequest
+  ClientObjTypes,
+  ClientRequest,
+  ResponseData,
+  RegResponseData,
+  Player,
 }
