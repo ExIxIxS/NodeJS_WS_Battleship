@@ -2,15 +2,14 @@ const path = require('path');
 
 module.exports = {
   mode: 'production',
-  entry: './src/index.ts',
+  entry: './src/api_server/index.ts',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'index.js',
+    filename: 'index.cjs',
   },
   target: "node",
   resolve: {
     extensions: ['.ts', '.js'],
-    fallback: {},
   },
   module: {
     rules: [
