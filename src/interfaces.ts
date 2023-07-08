@@ -1,3 +1,5 @@
+import { BattleField } from './services/battleField'
+
 interface ClientObj {
   type: ClientObjTypes,
   id: number,
@@ -7,7 +9,7 @@ interface ClientObj {
 type ClientObjTypes = 'reg'
   | 'update_winners'
   | 'create_room'
-  | 'add_player_to_room'
+  | 'add_user_to_room'
   | 'create_game'
   | 'update_room'
   | 'add_ships'
@@ -16,16 +18,53 @@ type ClientObjTypes = 'reg'
   | 'turn'
   | 'finish';
 
+type ShipType = 'small'
+  | 'medium'
+  | 'large'
+  | 'huge';
+
 interface ClientRequest extends ClientObj {
-  data: Player | string,
+  data: string,
 };
+
+interface IdWsMessages {
+  wsId: number,
+  messages: string[],
+}
 
 interface Player {
   name: string,
   password: string,
 }
 
-type ResponseData = RegResponseData;
+interface AppPlayer extends Player {
+  index: number,
+  battleField: BattleField,
+}
+
+type BattleFieldArr = [
+  BattleFieldLine, BattleFieldLine, BattleFieldLine, BattleFieldLine, BattleFieldLine,
+  BattleFieldLine, BattleFieldLine, BattleFieldLine, BattleFieldLine, BattleFieldLine
+];
+
+
+type BattleFieldLine = [
+  BattleFieldCell, BattleFieldCell, BattleFieldCell, BattleFieldCell, BattleFieldCell,
+  BattleFieldCell, BattleFieldCell, BattleFieldCell, BattleFieldCell, BattleFieldCell
+]
+
+type BattleFieldCell = 'empty'
+  | 'ship'
+  | 'damaged'
+  | 'missed'
+
+
+interface GameRoom {
+  roomId: number,
+  roomUsers: AppPlayer[],
+}
+
+type ResponseData = RegResponseData | GameRoom[] | void;
 
 interface RegResponseData {
   name: string,
@@ -34,11 +73,61 @@ interface RegResponseData {
   errorText: string,
 }
 
+interface AddToRoomRequestData {
+  indexRoom: number,
+}
+
+interface Game {
+  roomId: number,
+  currentPlayerId: number,
+}
+
+interface Position {
+  x: number,
+  y: number,
+}
+
+interface Ship {
+  position: Position,
+  direction: boolean,
+  type: ShipType,
+  length: number,
+}
+
+interface AddShipRequestData {
+  gameId: number,
+  ships: Ship[],
+  indexPlayer: number,
+}
+
+type ShotResultType = 'miss' | 'killed' | 'shot';
+
+interface BattleFieldShotResult {
+  result: {
+    type: ShotResultType,
+    position: Position,
+  },
+  missed: Position[]
+}
+
 export type {
   ClientObj,
   ClientObjTypes,
   ClientRequest,
+  IdWsMessages,
   ResponseData,
   RegResponseData,
+  AddToRoomRequestData,
   Player,
+  AppPlayer,
+  GameRoom,
+  Game,
+  Ship,
+  ShipType,
+  Position,
+  AddShipRequestData,
+  BattleFieldArr,
+  BattleFieldLine,
+  BattleFieldCell,
+  BattleFieldShotResult,
 }

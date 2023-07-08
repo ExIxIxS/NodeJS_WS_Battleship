@@ -1,28 +1,185 @@
-import { Player } from "../interfaces";
+import { CustomWebSocket } from "../api_server/customWebSocket";
+import { AddShipRequestData, AppPlayer, Game, GameRoom } from "../interfaces";
+import { BattleField } from "./battleField";
 
 class FakeDB {
-  #playersList: Player[] = [];
+  #playersList: AppPlayer[] = [];
+  #wsIds: number[] = [];
+  #wsStorage:CustomWebSocket[] = [];
+  #gameRooms: GameRoom[] = [];
+  #activeGames: Game[] = [];
 
-  getPlayers(): Player[] {
+  /*
+    {  "gameId\":0,
+      "ships\":[
+          {\"position\":{\"x\":0,\"y\":1},\"direction\":false,\"type\":\"huge\",\"length\":4},
+          {\"position\":{\"x\":6,\"y\":3},\"direction\":false,\"type\":\"large\",\"length\":3},
+        ],
+      "indexPlayer\":0
+    }
+  */
+  setPlayerShips(requesData: AddShipRequestData): void {
+    const player = this.getPlayerById(requesData.indexPlayer);
+
+    if (!player) {
+      return;
+    }
+
+    player.battleField.setShips(requesData.ships);
+    this.setGameCurrentPlayerId(requesData.gameId, player.index);
+  }
+
+  setGameCurrentPlayerId(gameId: number, playerId: number): void {
+    const game = this.#activeGames.find((game) => {
+      game.roomId === gameId;
+    })
+
+    if (game) {
+      game.currentPlayerId = playerId;
+    }
+  }
+
+  getGameCurrentPlayerId(gameId: number): number | void {
+    const game = this.#activeGames.find((game) => game.roomId === gameId);
+
+    if (game) {
+      return game.currentPlayerId;
+    }
+  }
+
+  isGameStarted(gameId: number): boolean {
+    const gameRoom = this.#gameRooms.find((gameRoom) => gameRoom.roomId === gameId);
+
+    if (gameRoom) {
+      return gameRoom.roomUsers.every((player) => {
+        return !player.battleField.isBattleFieldEmpty;
+      })
+    }
+
+    return false;
+  }
+
+  addWsToStorage(ws: CustomWebSocket) {
+    ws.id = this.getNextWsId();
+    this.#wsStorage.push(ws);
+  }
+
+  getActiveWs(): CustomWebSocket[] {
+    return this.#wsStorage;
+  }
+
+  getNextWsId(): number {
+    const idsLength = this.#wsIds.length;
+    this.#wsIds.push(idsLength);
+
+    return idsLength;
+  }
+
+  createNewGame(roomId: number, currentPlayerId: number): void {
+    this.#activeGames.push({
+      roomId: roomId,
+      currentPlayerId: currentPlayerId,
+    });
+  }
+
+  #getNewRoom(): GameRoom {
+    const newRoom: GameRoom = {
+      roomId: this.#gameRooms.length,
+      roomUsers: [],
+    }
+
+    this.#gameRooms.push(newRoom);
+
+    return newRoom;
+  }
+
+  createNewRoom(playerId: number): GameRoom | void {
+    const roomCreator = this.getPlayerById(playerId);
+
+    if (!roomCreator) {
+      return;
+    }
+
+    const newRoom: GameRoom = this.#getNewRoom();
+    newRoom.roomUsers.push(roomCreator);
+  }
+
+
+  getFreeRooms(): GameRoom[] {
+    const freeRooms = this.#gameRooms.filter((room) => room.roomUsers.length < 2);
+
+    return freeRooms;
+  }
+
+  getRoomById(roomId: number): GameRoom | void {
+    const room = this.#gameRooms.find((room) => room.roomId === roomId);
+
+    if (room) {
+      return { ...room };
+    }
+  }
+
+  addPlayerToRoom(roomId: number, gamePlayer: AppPlayer): void {
+    const storageRoom = this.getRoomById(roomId);
+
+    if (!storageRoom) {
+      return;
+    }
+
+    storageRoom.roomUsers.push(gamePlayer)
+  }
+
+  isPlayerInRoom(roomId: number, playerId: number): boolean {
+    const storageRoom = this.getRoomById(roomId);
+
+    if (!storageRoom) {
+      return false;
+    }
+
+    const player = storageRoom.roomUsers.find((player) => player.index === playerId)
+    return (!!player);
+  }
+
+  getPlayers(): AppPlayer[] {
     return this.#playersList.map((player) => {
       return { ...player };
     });
   }
 
-  getPlayer(name: unknown): Player | void {
+  getPlayerByName(name: unknown): AppPlayer | void {
     if (typeof name !== 'string') {
       return;
     }
 
-    const player = this.#playersList.find((user) => user.name === name);
+    const player = this.#playersList.find((player) => player.name === name);
 
     if (player) {
       return { ...player };
     }
   }
 
-  addPlayer(newUser: Player): void {
-    this.#playersList.push(newUser);
+  getPlayerById(id: unknown): AppPlayer | void {
+    if (typeof id !== 'number') {
+      return;
+    }
+
+    const player = this.#playersList.find((player) => player.index === id);
+
+    if (player) {
+      return { ...player };
+    }
+  }
+
+  addPlayer(newPlayer: AppPlayer): void {
+    this.#playersList.push(newPlayer);
+  }
+
+  activatePlayer(player: AppPlayer): void {
+    const existedPlayer = this.getPlayerById(player.name);
+
+    if (!existedPlayer) {
+      this.addPlayer(player);
+    }
   }
 }
 
