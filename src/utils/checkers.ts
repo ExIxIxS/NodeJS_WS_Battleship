@@ -1,4 +1,10 @@
-import { MAX_PLAYER_NAME_LENGTH, MAX_PLAYER_PASS_LENGTH, MIN_PLAYER_NAME_LENGTH, MIN_PLAYER_PASS_LENGTH } from "../constants/validation";
+import {
+  MAX_PLAYER_NAME_LENGTH,
+  MAX_PLAYER_PASS_LENGTH,
+  MIN_PLAYER_NAME_LENGTH,
+  MIN_PLAYER_PASS_LENGTH
+} from "../constants/validation";
+
 import { Player } from "../interfaces";
 
 function isValidRequestObject(reqObj: unknown): boolean {

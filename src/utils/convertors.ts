@@ -1,3 +1,4 @@
+import { SERVER_JSON_ERROR_MESSAGE } from "../constants/messages";
 import { isObj } from "./checkers";
 
 function getJsonString(item: unknown): string {
@@ -10,7 +11,7 @@ function getJsonString(item: unknown): string {
   } catch {
     resultStr = JSON.stringify({
       status: 500,
-      message: "server JSON converting error"
+      message: SERVER_JSON_ERROR_MESSAGE
     });
   }
 

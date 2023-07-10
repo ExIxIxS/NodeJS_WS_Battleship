@@ -102,7 +102,7 @@ function getAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] 
     return getJsonString(responseMessage);
   })
 
-  const isGameEnded = attackedPlayer.battleField.isAllShipsKilled();
+  const isGameEnded = attackedPlayer.battleField.isAllShipsKilled;
 
   if (attackResult.result.type === 'miss' && !isGameEnded) {
     fakeDB.toggleGameCurrentPlayer(gameId);
