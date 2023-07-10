@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { getAddShipsResponseMessage, getAddToRoomResponseMessage, getAttackResponseMessage, getCreateRoomResponseMessage, getRegResponseMessage, getUpdateRoomResponseMessage } from './serverResponse';
+import { getAddShipsResponseMessage, getAddToRoomResponseMessage, getAttackResponseMessage, getCreateRoomResponseMessage, getRandomAttackResponseMessage, getRegResponseMessage, getUpdateRoomResponseMessage } from './serverResponse';
 import { getJsonString } from './convertors';
 import { isValidRequestObject } from './checkers';
 
@@ -78,6 +78,17 @@ function handleRequest(clientMessage: ClientRequest, ws: CustomWebSocket): void 
 
       if (attackResponse) {
         sentToWsById(attackResponse, (socket, socketMessage) => {
+          console.log(`${getServerMessageDatedTitle()} [wsId: ${socket.id}] Response with message: ${socketMessage}`);
+        });
+      }
+
+      return;
+    }
+    case 'randomAttack': {
+      const randomAttackResponse = getRandomAttackResponseMessage(clientMessage);
+
+      if (randomAttackResponse) {
+        sentToWsById(randomAttackResponse, (socket, socketMessage) => {
           console.log(`${getServerMessageDatedTitle()} [wsId: ${socket.id}] Response with message: ${socketMessage}`);
         });
       }

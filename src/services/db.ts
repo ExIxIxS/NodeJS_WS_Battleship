@@ -34,7 +34,6 @@ class FakeDB {
 
     if (game) {
       game.currentPlayerId = playerId;
-      console.log('--> setGameCurrentPlayerId - toogled! --> ', playerId);
     }
   }
 
@@ -61,7 +60,6 @@ class FakeDB {
     }
 
     this.setGameCurrentPlayerId(gameId, newCurrentPlayer.index);
-    console.log(currentPlayerId, '--> toggleGameCurrentPlayer - toogled! --> ', newCurrentPlayer.index);
   }
 
   isGameStarted(gameId: number): boolean {

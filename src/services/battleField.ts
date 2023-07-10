@@ -184,7 +184,33 @@ class BattleField {
     }
   }
 
+  getRandomShotPosition(): Position {
+    function getRandomCoord(): number {
+      const randomNumber = Math.round(Math.random() * 10);
+      return (randomNumber === 10)
+        ? randomNumber - 1
+        : randomNumber;
+    }
+
+    const position: Position = {
+      x: getRandomCoord(),
+      y: getRandomCoord(),
+    }
+
+    let limit = 0;
+
+    while (this.#battleField[position.y][position.x] !== 'empty'
+      && this.#battleField[position.y][position.x] !== 'ship') {
+        position.x = getRandomCoord();
+        position.y = getRandomCoord();
+        limit++;
+    }
+
+    return position;
+  }
+
 }
+
 
 export {
   BattleField,

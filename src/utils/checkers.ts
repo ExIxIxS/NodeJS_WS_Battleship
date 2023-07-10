@@ -68,6 +68,15 @@ function isValidAttackRequestData(attackData: unknown): boolean {
   )
 }
 
+function isValidRandomAttackRequestData(attackData: unknown): boolean {
+  return !!(attackData
+    && typeof(attackData) === 'object'
+    && 'gameId' in attackData
+    && typeof(attackData['gameId'] === 'number')
+    && typeof(attackData['indexPlayer'] === 'number')
+  )
+}
+
 
 export {
   isValidRequestObject,
@@ -77,4 +86,5 @@ export {
   isValidRoomRequestData,
   isValidAddShipsRequestData,
   isValidAttackRequestData,
+  isValidRandomAttackRequestData,
 };

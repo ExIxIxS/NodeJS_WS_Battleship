@@ -1,26 +1,62 @@
 import { getJsonString, getParsed } from "./convertors";
-import { isPlayerObject, isValidAddShipsRequestData, isValidAttackRequestData, isValidPlayerObject, isValidRoomRequestData } from "./checkers";
+import { isPlayerObject, isValidAddShipsRequestData, isValidAttackRequestData, isValidPlayerObject, isValidRandomAttackRequestData, isValidRoomRequestData } from "./checkers";
 import fakeDB from '../services/db'
 import { BattleField } from "../services/battleField";
 
 import { AddShipRequestData, AddToRoomRequestData, AppPlayer, AttackRequestData, AttackResponseData,
   BattleFieldShotResult, ClientRequest, GameRoom, IdWsMessages, Player,
-  Position, RegResponseData, ResponseData, ServerResponseObj, ShotResultType
+  Position, RandomAttackRequestData, RegResponseData, ResponseData, ServerResponseObj, ShotResultType
 } from "../interfaces";
 
-/*
-  {
-    type: "attack",
-    data:
-        {
-            gameId: <number>,
-            x: <number>,
-            y: <number>,
-            indexPlayer: <number>, /* id of the player in the current game
+function getRandomAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
+        /*
+      {
+        type: "randomAttack",
+        data:
+          {
+              gameId: <number>,
+              indexPlayer: <number>,
           },
-          id: 0,
+        id: 0,
+        }
+      */
+
+  const randomAttackData = getParsed(clientMessage.data);
+
+  if (!isValidRandomAttackRequestData(randomAttackData)) {
+    console.log('!isValidRandomAttackRequestData');
+    return;
   }
-*/
+
+  const validRandomAttackRequestData = randomAttackData as RandomAttackRequestData;
+  const attackingPlayerId = validRandomAttackRequestData.indexPlayer;
+  const gameId = validRandomAttackRequestData.gameId;
+  const attackedPlayer = fakeDB.getAttackedPlayer(gameId, attackingPlayerId);
+
+  if (!attackedPlayer) {
+    console.log('!attackedPlayer');
+    return;
+  }
+
+  const randomShotPosition = attackedPlayer.battleField.getRandomShotPosition();
+  const fakeClientAttackData: AttackRequestData = {
+    ...validRandomAttackRequestData,
+    x: randomShotPosition.x,
+    y: randomShotPosition.y,
+  };
+
+  const fakeClientAttackRequest: ClientRequest = {
+    ...clientMessage,
+    type: 'attack',
+    data: getJsonString(fakeClientAttackData)
+  };
+
+  const attackResponseMessage = getAttackResponseMessage(fakeClientAttackRequest)
+
+  console.log('attackResponseMessage --> ', attackResponseMessage);
+
+  return attackResponseMessage;
+}
 
 function getAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
   const attackData = getParsed(clientMessage.data);
@@ -112,31 +148,6 @@ function getAttackResponseData(position: Position, currentPlayerId: number, shot
     status: shotResult,
   };
 }
-
-/*
-interface BattleFieldShotResult {
-  result: {
-    type: ShotResultType,
-    position: Position,
-  },
-  missed: Position[]
-}
-
-{
-    type: "attack";,
-    data:
-        {
-            position:
-            {
-                x: <number>,
-                y: <number>,
-            },
-            currentPlayer: <number>, /* id of the player in the current game
-            status: "miss"|"killed"|"shot",
-        },
-    id: 0,
-}
-*/
 
 function getAddShipsResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
   const addShipsData = getParsed(clientMessage.data);
@@ -331,4 +342,5 @@ export {
   getUpdateRoomResponseMessage,
   getAddShipsResponseMessage,
   getAttackResponseMessage,
+  getRandomAttackResponseMessage,
 }

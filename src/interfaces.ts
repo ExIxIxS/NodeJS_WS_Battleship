@@ -121,6 +121,11 @@ interface AttackResponseData {
   status: ShotResultType,
 }
 
+interface RandomAttackRequestData {
+  gameId: number,
+  indexPlayer: number,
+}
+
 export type {
   ClientObjTypes,
   ClientRequest,
@@ -144,4 +149,5 @@ export type {
   AttackRequestData,
   AttackResponseData,
   ShotResultType,
+  RandomAttackRequestData,
 }
