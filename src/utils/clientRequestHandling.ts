@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { getAddShipsResponseMessage, getAddToRoomResponseMessage, getCreateRoomResponseMessage, getRegResponseMessage, getUpdateRoomResponseMessage } from './serverResponse';
+import { getAddShipsResponseMessage, getAddToRoomResponseMessage, getAttackResponseMessage, getCreateRoomResponseMessage, getRegResponseMessage, getUpdateRoomResponseMessage } from './serverResponse';
 import { getJsonString } from './convertors';
 import { isValidRequestObject } from './checkers';
 
@@ -63,10 +63,21 @@ function handleRequest(clientMessage: ClientRequest, ws: CustomWebSocket): void 
       return;
     }
     case 'add_ships': {
-      const addShipsResponse = getAddShipsResponseMessage(clientMessage, ws.id);
+      const addShipsResponse = getAddShipsResponseMessage(clientMessage);
 
       if (addShipsResponse) {
         sentToWsById(addShipsResponse, (socket, socketMessage) => {
+          console.log(`${getServerMessageDatedTitle()} [wsId: ${socket.id}] Response with message: ${socketMessage}`);
+        });
+      }
+
+      return;
+    }
+    case 'attack': {
+      const attackResponse = getAttackResponseMessage(clientMessage);
+
+      if (attackResponse) {
+        sentToWsById(attackResponse, (socket, socketMessage) => {
           console.log(`${getServerMessageDatedTitle()} [wsId: ${socket.id}] Response with message: ${socketMessage}`);
         });
       }

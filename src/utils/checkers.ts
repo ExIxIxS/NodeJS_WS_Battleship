@@ -55,14 +55,19 @@ function isValidAddShipsRequestData(addShipsData: unknown): boolean {
   )
 }
 
-/*
-"{"gameId\":0,
-          "ships\":[
-            {\"position\":{\"x\":0,\"y\":1},\"direction\":false,\"type\":\"huge\",\"length\":4},
-            {\"position\":{\"x\":6,\"y\":3},\"direction\":false,\"type\":\"large\",\"length\":3},
-          ],
-          "indexPlayer\":0}",
-*/
+function isValidAttackRequestData(attackData: unknown): boolean {
+  return !!(attackData
+    && typeof(attackData) === 'object'
+    && 'gameId' in attackData
+    && 'x' in attackData
+    && 'y' in attackData
+    && typeof(attackData['gameId'] === 'number')
+    && typeof(attackData['x'] === 'number')
+    && typeof(attackData['y'] === 'number')
+    && typeof(attackData['indexPlayer'] === 'number')
+  )
+}
+
 
 export {
   isValidRequestObject,
@@ -71,4 +76,5 @@ export {
   isValidPlayerObject,
   isValidRoomRequestData,
   isValidAddShipsRequestData,
+  isValidAttackRequestData,
 };

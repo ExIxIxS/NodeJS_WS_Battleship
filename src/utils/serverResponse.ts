@@ -1,11 +1,144 @@
 import { getJsonString, getParsed } from "./convertors";
-import { isPlayerObject, isValidAddShipsRequestData, isValidPlayerObject, isValidRoomRequestData } from "./checkers";
+import { isPlayerObject, isValidAddShipsRequestData, isValidAttackRequestData, isValidPlayerObject, isValidRoomRequestData } from "./checkers";
 import fakeDB from '../services/db'
-
-import { AddShipRequestData, AddToRoomRequestData, AppPlayer, ClientObj, ClientRequest, GameRoom, IdWsMessages, Player, RegResponseData, ResponseData } from "../interfaces";
 import { BattleField } from "../services/battleField";
 
-function getAddShipsResponseMessage(clientMessage: ClientRequest, wsId: number): IdWsMessages[] | void {
+import { AddShipRequestData, AddToRoomRequestData, AppPlayer, AttackRequestData, AttackResponseData,
+  BattleFieldShotResult, ClientRequest, GameRoom, IdWsMessages, Player,
+  Position, RegResponseData, ResponseData, ServerResponseObj, ShotResultType
+} from "../interfaces";
+
+/*
+  {
+    type: "attack",
+    data:
+        {
+            gameId: <number>,
+            x: <number>,
+            y: <number>,
+            indexPlayer: <number>, /* id of the player in the current game
+          },
+          id: 0,
+  }
+*/
+
+function getAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
+  const attackData = getParsed(clientMessage.data);
+
+  if (!isValidAttackRequestData(attackData)) {
+    return;
+  }
+
+  const validAttackData = attackData as AttackRequestData;
+  const attackingPlayerId = validAttackData.indexPlayer;
+  const gameId = validAttackData.gameId;
+  const attackedPlayer = fakeDB.getAttackedPlayer(gameId, attackingPlayerId);
+  const gameRoom = fakeDB.getRoomById(gameId);
+  let currentPlayerId = fakeDB.getGameCurrentPlayerId(gameId);
+
+  if (!attackedPlayer
+    || !gameRoom
+    || typeof(currentPlayerId) !== 'number'
+    || currentPlayerId !== attackingPlayerId) {
+
+    return;
+  }
+
+  const shot = {
+    x: validAttackData.x,
+    y: validAttackData.y,
+  }
+
+  const attackResult = attackedPlayer.battleField.shootAndGetResult(shot);
+
+  if (!attackResult) {
+    return;
+  }
+
+  const responseDataArr = getAttackResponseDataArr(attackingPlayerId, attackResult);
+
+  const attackResponseMessages: string[] = responseDataArr.map((responseData) => {
+    const responseDataStr = getJsonString(responseData);
+    const responseMessage: ServerResponseObj = {
+      type: 'attack',
+      data: responseDataStr,
+      id: clientMessage.id,
+    }
+
+    return getJsonString(responseMessage);
+  })
+
+  if (attackResult.result.type === 'miss') {
+    fakeDB.toggleGameCurrentPlayer(gameId);
+    const newCurrentPlayerId = fakeDB.getGameCurrentPlayerId(gameId);
+    currentPlayerId =  (typeof(newCurrentPlayerId) === 'number')
+      ? newCurrentPlayerId
+      : currentPlayerId;
+  }
+
+  const nextTurnResponseMessage = getTurnResponseMessage(currentPlayerId);
+  attackResponseMessages.push(nextTurnResponseMessage);
+  const idMessages = getRoomWsIdMessages(gameRoom, attackResponseMessages);
+
+  return idMessages;
+};
+
+
+function getRoomWsIdMessages(gameRoom: GameRoom, messages: string[]): IdWsMessages[] {
+  return gameRoom.roomUsers.map((player) => {
+    return {
+      wsId: player.index,
+      messages: [...messages],
+    }
+  })
+}
+
+function getAttackResponseDataArr(attackingPlayerId: number, shotResult: BattleFieldShotResult): AttackResponseData[] {
+  const responseData: AttackResponseData[] = []
+  const mainResponseData = getAttackResponseData(shotResult.result.position, attackingPlayerId, shotResult.result.type);
+  responseData.push(mainResponseData);
+  shotResult.missed.forEach((missedPosition) => {
+    const additionalMissedResponseData = getAttackResponseData(missedPosition, attackingPlayerId, shotResult.result.type);
+    responseData.push(additionalMissedResponseData);
+  })
+
+  return responseData;
+}
+
+function getAttackResponseData(position: Position, currentPlayerId: number, shotResult: ShotResultType): AttackResponseData {
+  return {
+    position: position,
+    currentPlayer: currentPlayerId,
+    status: shotResult,
+  };
+}
+
+/*
+interface BattleFieldShotResult {
+  result: {
+    type: ShotResultType,
+    position: Position,
+  },
+  missed: Position[]
+}
+
+{
+    type: "attack";,
+    data:
+        {
+            position:
+            {
+                x: <number>,
+                y: <number>,
+            },
+            currentPlayer: <number>, /* id of the player in the current game
+            status: "miss"|"killed"|"shot",
+        },
+    id: 0,
+}
+*/
+
+function getAddShipsResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
   const addShipsData = getParsed(clientMessage.data);
 
   if (!isValidAddShipsRequestData(addShipsData)) {
@@ -49,17 +182,6 @@ function getAddShipsResponseMessage(clientMessage: ClientRequest, wsId: number):
 }
 
 function getTurnResponseMessage(currentPlayerId: number): string {
-  /*
-    {
-      type: "turn",
-      data:
-          {
-              currentPlayer: <number>,
-          },
-      id: 0,
-    }
-  */
-
   const data = {
     currentPlayer: currentPlayerId,
   }
@@ -184,7 +306,7 @@ function getRegResponseMessage(clientMessage: ClientRequest, playerId: number): 
   return getResponseStr(clientMessage, successResponseData);
 }
 
-function getResponseStr(clientMessage: ClientObj, data: ResponseData): string {
+function getResponseStr(clientMessage: ClientRequest, data: ResponseData): string {
   const response = {
     ...clientMessage,
     data: JSON.stringify(data),
@@ -208,4 +330,5 @@ export {
   getAddToRoomResponseMessage,
   getUpdateRoomResponseMessage,
   getAddShipsResponseMessage,
+  getAttackResponseMessage,
 }

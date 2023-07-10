@@ -1,11 +1,5 @@
 import { BattleField } from './services/battleField'
 
-interface ClientObj {
-  type: ClientObjTypes,
-  id: number,
-  data: any,
-}
-
 type ClientObjTypes = 'reg'
   | 'update_winners'
   | 'create_room'
@@ -23,9 +17,13 @@ type ShipType = 'small'
   | 'large'
   | 'huge';
 
-interface ClientRequest extends ClientObj {
+interface ClientRequest {
+  type: ClientObjTypes,
+  id: number,
   data: string,
 };
+
+type ServerResponseObj = ClientRequest;
 
 interface IdWsMessages {
   wsId: number,
@@ -110,10 +108,23 @@ interface BattleFieldShotResult {
   missed: Position[]
 }
 
+interface AttackRequestData {
+  gameId: number,
+  x: number,
+  y: number,
+  indexPlayer: number,
+}
+
+interface AttackResponseData {
+  position: Position,
+  currentPlayer: number,
+  status: ShotResultType,
+}
+
 export type {
-  ClientObj,
   ClientObjTypes,
   ClientRequest,
+  ServerResponseObj,
   IdWsMessages,
   ResponseData,
   RegResponseData,
@@ -130,4 +141,7 @@ export type {
   BattleFieldLine,
   BattleFieldCell,
   BattleFieldShotResult,
+  AttackRequestData,
+  AttackResponseData,
+  ShotResultType,
 }

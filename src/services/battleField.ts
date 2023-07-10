@@ -136,8 +136,9 @@ class BattleField {
     let missedCells: Position[] = [];
 
     if (isShipKilled) {
-      missedCells = this.#getEmptyAroundShip(ship);
-      this.#markCellsLikeMissed(missedCells);
+      const emptyCellsAround = this.#getEmptyAroundShip(ship);
+      this.#markCellsLikeMissed(emptyCellsAround);
+      missedCells = this.#getMissedAroundShip(ship)
     }
 
     return {
@@ -156,7 +157,7 @@ class BattleField {
       .every((cell) => cell === 'empty');
   }
 
-  shootAndGetResult(shot: Position): BattleFieldShotResult {
+  shootAndGetResult(shot: Position): BattleFieldShotResult | void {
     const shotPosition = this.#battleField[shot.y][shot.x];
 
     switch(shotPosition) {
@@ -164,7 +165,9 @@ class BattleField {
         this.#battleField[shot.y][shot.x] = 'damaged';
         return this.#handleShipDamage(shot);
       }
-      default: {
+      case 'empty': {
+        this.#markCellsLikeMissed([shot]);
+
         return {
           result: {
             type: 'miss',
@@ -173,29 +176,16 @@ class BattleField {
           missed: [],
         }
       }
+      case 'damaged':
+      case 'missed':
+      default: {
+        return;
+      }
     }
   }
 
-  // "miss"|"killed"|"shot"
 }
 
 export {
   BattleField,
 }
-
-/*
-
-"ships\":[
-  {\"position\":{\"x\":1,\"y\":0},\"direction\":false,\"type\":\"huge\",\"length\":4}, --> horizontal
-  {\"position\":{\"x\":1,\"y\":2},\"direction\":false,\"type\":\"large\",\"length\":3},
-  {\"position\":{\"x\":5,\"y\":2},\"direction\":false,\"type\":\"large\",\"length\":3},
-  {\"position\":{\"x\":0,\"y\":4},\"direction\":true,\"type\":\"medium\",\"length\":2},  --> vertical
-  {\"position\":{\"x\":0,\"y\":7},\"direction\":false,\"type\":\"medium\",\"length\":2},
-  {\"position\":{\"x\":0,\"y\":9},\"direction\":false,\"type\":\"medium\",\"length\":2},
-  {\"position\":{\"x\":9,\"y\":9},\"direction\":false,\"type\":\"small\",\"length\":1},
-  {\"position\":{\"x\":9,\"y\":7},\"direction\":false,\"type\":\"small\",\"length\":1},
-  {\"position\":{\"x\":7,\"y\":9},\"direction\":false,\"type\":\"small\",\"length\":1},
-  {\"position\":{\"x\":7,\"y\":7},\"direction\":false,\"type\":\"small\",\"length\":1}
-],
-
-*/

@@ -30,12 +30,11 @@ class FakeDB {
   }
 
   setGameCurrentPlayerId(gameId: number, playerId: number): void {
-    const game = this.#activeGames.find((game) => {
-      game.roomId === gameId;
-    })
+    const game = this.#activeGames.find((game) => game.roomId === gameId);
 
     if (game) {
       game.currentPlayerId = playerId;
+      console.log('--> setGameCurrentPlayerId - toogled! --> ', playerId);
     }
   }
 
@@ -45,6 +44,24 @@ class FakeDB {
     if (game) {
       return game.currentPlayerId;
     }
+  }
+
+  toggleGameCurrentPlayer(gameId: number): void {
+    const room = this.#gameRooms.find((room) => room.roomId === gameId);
+    const currentPlayerId = this.getGameCurrentPlayerId(gameId);
+
+    if (!room || typeof(currentPlayerId) !== 'number') {
+      return;
+    }
+
+    const newCurrentPlayer = room.roomUsers.find((player) => player.index !== currentPlayerId);
+
+    if (!newCurrentPlayer) {
+      return;
+    }
+
+    this.setGameCurrentPlayerId(gameId, newCurrentPlayer.index);
+    console.log(currentPlayerId, '--> toggleGameCurrentPlayer - toogled! --> ', newCurrentPlayer.index);
   }
 
   isGameStarted(gameId: number): boolean {
@@ -168,6 +185,16 @@ class FakeDB {
     if (player) {
       return { ...player };
     }
+  }
+
+  getAttackedPlayer(gameId: number, attackingPlayerId: number): AppPlayer | void {
+    const room = this.getRoomById(gameId);
+
+    if (!room) {
+      return;
+    }
+
+    return room.roomUsers.find((player) => player.index !== attackingPlayerId);
   }
 
   addPlayer(newPlayer: AppPlayer): void {
