@@ -8,23 +8,24 @@ import { AddShipRequestData, AddToRoomRequestData, AppPlayer, AttackRequestData,
   Position, RandomAttackRequestData, RegResponseData, ResponseData, ServerResponseObj, ShotResultType
 } from "../interfaces";
 
-function getRandomAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
-        /*
-      {
-        type: "randomAttack",
-        data:
-          {
-              gameId: <number>,
-              indexPlayer: <number>,
-          },
-        id: 0,
-        }
-      */
+function getFinishResponseMessage(winPlayerId: number): string {
+  const finishData = {
+    winPlayer: winPlayerId,
+  }
 
+  const finishResponse: ServerResponseObj = {
+    type: 'finish',
+    data: getJsonString(finishData),
+    id: 0,
+  }
+
+  return getJsonString(finishResponse);
+}
+
+function getRandomAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
   const randomAttackData = getParsed(clientMessage.data);
 
   if (!isValidRandomAttackRequestData(randomAttackData)) {
-    console.log('!isValidRandomAttackRequestData');
     return;
   }
 
@@ -34,7 +35,6 @@ function getRandomAttackResponseMessage(clientMessage: ClientRequest): IdWsMessa
   const attackedPlayer = fakeDB.getAttackedPlayer(gameId, attackingPlayerId);
 
   if (!attackedPlayer) {
-    console.log('!attackedPlayer');
     return;
   }
 
@@ -52,8 +52,6 @@ function getRandomAttackResponseMessage(clientMessage: ClientRequest): IdWsMessa
   };
 
   const attackResponseMessage = getAttackResponseMessage(fakeClientAttackRequest)
-
-  console.log('attackResponseMessage --> ', attackResponseMessage);
 
   return attackResponseMessage;
 }
@@ -104,7 +102,9 @@ function getAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] 
     return getJsonString(responseMessage);
   })
 
-  if (attackResult.result.type === 'miss') {
+  const isGameEnded = attackedPlayer.battleField.isAllShipsKilled();
+
+  if (attackResult.result.type === 'miss' && !isGameEnded) {
     fakeDB.toggleGameCurrentPlayer(gameId);
     const newCurrentPlayerId = fakeDB.getGameCurrentPlayerId(gameId);
     currentPlayerId =  (typeof(newCurrentPlayerId) === 'number')
@@ -112,8 +112,14 @@ function getAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] 
       : currentPlayerId;
   }
 
-  const nextTurnResponseMessage = getTurnResponseMessage(currentPlayerId);
-  attackResponseMessages.push(nextTurnResponseMessage);
+  if (isGameEnded) {
+    const finishResponseMessage = getFinishResponseMessage(currentPlayerId);
+    attackResponseMessages.push(finishResponseMessage);
+  } else {
+    const nextTurnResponseMessage = getTurnResponseMessage(currentPlayerId);
+    attackResponseMessages.push(nextTurnResponseMessage);
+  }
+
   const idMessages = getRoomWsIdMessages(gameRoom, attackResponseMessages);
 
   return idMessages;

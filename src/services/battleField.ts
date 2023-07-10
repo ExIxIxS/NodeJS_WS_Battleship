@@ -50,6 +50,20 @@ class BattleField {
     })
   }
 
+  #deleteShipByCellPosition(cellPosition: Position): void {
+    const shipIndex = this.#ships.findIndex((positions) => {
+      return positions.some((position) => {
+        return (position.x === cellPosition.x
+          && position.y === cellPosition.y
+        )
+      })
+    });
+
+    if (shipIndex >= 0) {
+      this.#ships.splice(shipIndex, 1);
+    }
+  }
+
   setShips(ships: Ship[]) {
     ships.forEach((ship) => {
       this.#addShipToBattleField(ship);
@@ -70,6 +84,10 @@ class BattleField {
     return ship.every((position) => {
       return this.#battleField[position.y][position.x] === 'damaged';
     })
+  }
+
+  isAllShipsKilled(): boolean {
+    return !this.#ships.length;
   }
 
   #getMissedAroundShip(ship: Position[]): Position[] {
@@ -139,6 +157,7 @@ class BattleField {
       const emptyCellsAround = this.#getEmptyAroundShip(ship);
       this.#markCellsLikeMissed(emptyCellsAround);
       missedCells = this.#getMissedAroundShip(ship)
+      this.#deleteShipByCellPosition(shot);
     }
 
     return {
@@ -210,7 +229,6 @@ class BattleField {
   }
 
 }
-
 
 export {
   BattleField,
