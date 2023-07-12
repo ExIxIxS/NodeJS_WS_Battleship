@@ -1,6 +1,5 @@
 import { CustomWebSocket } from "../api_server/customWebSocket";
-import { AddShipRequestData, AppPlayer, Game, GameRoom } from "../interfaces";
-import { BattleField } from "./battleField";
+import { AddShipRequestData, AppPlayer, Game, GameRoom, Winner } from "../interfaces";
 
 class FakeDB {
   #playersList: AppPlayer[] = [];
@@ -9,15 +8,27 @@ class FakeDB {
   #gameRooms: GameRoom[] = [];
   #activeGames: Game[] = [];
 
-  /*
-    {  "gameId\":0,
-      "ships\":[
-          {\"position\":{\"x\":0,\"y\":1},\"direction\":false,\"type\":\"huge\",\"length\":4},
-          {\"position\":{\"x\":6,\"y\":3},\"direction\":false,\"type\":\"large\",\"length\":3},
-        ],
-      "indexPlayer\":0
+  addWin(winnerId: number) {
+    const winner = this.getPlayerById(winnerId);
+
+    if (winner) {
+      winner.wins = winner.wins + 1;
     }
-  */
+  }
+
+  getWinners(): Winner[] {
+    const winners = this.#playersList.map((player) => {
+      return {
+        name: player.name,
+        wins: player.wins,
+      }
+    })
+
+    console.log('getWinners() --> ', winners);
+
+    return winners;
+  }
+
   setPlayerShips(requesData: AddShipRequestData): void {
     const player = this.getPlayerById(requesData.indexPlayer);
 
@@ -25,6 +36,7 @@ class FakeDB {
       return;
     }
 
+    player.shipsData = requesData;
     player.battleField.setShips(requesData.ships);
     this.setGameCurrentPlayerId(requesData.gameId, player.index);
   }
@@ -97,6 +109,25 @@ class FakeDB {
     });
   }
 
+  #deleteGame(roomId: number): void {
+    const gameIndex = this.#activeGames.findIndex((game) => game.roomId === roomId);
+
+    if (gameIndex >= 0) {
+      this.#activeGames.splice(gameIndex, 1);
+    }
+  }
+
+  finishGame(roomId: number): void {
+    this.#deleteGame(roomId);
+
+    const room = this.getRoomById(roomId);
+    if (room) {
+      room.roomUsers.forEach((player) => {
+        player.battleField.reset();
+      });
+    }
+  }
+
   #getNewRoom(): GameRoom {
     const newRoom: GameRoom = {
       roomId: this.#gameRooms.length,
@@ -141,6 +172,7 @@ class FakeDB {
       return;
     }
 
+    gamePlayer.battleField.reset();
     storageRoom.roomUsers.push(gamePlayer)
   }
 
@@ -181,7 +213,7 @@ class FakeDB {
     const player = this.#playersList.find((player) => player.index === id);
 
     if (player) {
-      return { ...player };
+      return player;
     }
   }
 

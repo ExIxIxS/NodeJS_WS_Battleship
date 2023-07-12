@@ -1,4 +1,5 @@
 import { SERVER_JSON_ERROR_MESSAGE } from "../constants/messages";
+import { ClientGameRoom, ClientPlayer, GameRoom } from "../interfaces";
 import { isObj } from "./checkers";
 
 function getJsonString(item: unknown): string {
@@ -24,7 +25,24 @@ function getParsed(str: unknown): unknown {
     : str;
 }
 
+function getClientRoomsFromGameRooms(gameRoom: GameRoom[]): ClientGameRoom[] {
+  return gameRoom.map((gameRoom) => {
+    const clientUsers: ClientPlayer[] = gameRoom.roomUsers.map((player) => {
+      return {
+        name: player.name,
+        index: player.index,
+      }
+    });
+
+  return {
+    ...gameRoom,
+    roomUsers: clientUsers,
+  }});
+
+}
+
 export {
   getJsonString,
   getParsed,
+  getClientRoomsFromGameRooms
 }

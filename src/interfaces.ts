@@ -35,9 +35,21 @@ interface Player {
   password: string,
 }
 
+interface ClientPlayer {
+  name: string,
+  index: number,
+}
+
 interface AppPlayer extends Player {
   index: number,
   battleField: BattleField,
+  wins: number,
+  shipsData?: AddShipRequestData,
+}
+
+interface Winner {
+  name: string,
+  wins: number,
 }
 
 type BattleFieldArr = [
@@ -62,7 +74,12 @@ interface GameRoom {
   roomUsers: AppPlayer[],
 }
 
-type ResponseData = RegResponseData | GameRoom[] | void;
+interface ClientGameRoom {
+  roomId: number,
+  roomUsers: ClientPlayer[],
+}
+
+type ResponseData = RegResponseData | ClientGameRoom[] | void;
 
 interface RegResponseData {
   name: string,
@@ -135,8 +152,11 @@ export type {
   RegResponseData,
   AddToRoomRequestData,
   Player,
+  ClientPlayer,
   AppPlayer,
+  Winner,
   GameRoom,
+  ClientGameRoom,
   Game,
   Ship,
   ShipType,

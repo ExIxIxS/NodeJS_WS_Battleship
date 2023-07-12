@@ -1,10 +1,10 @@
-import { getJsonString, getParsed } from "./convertors";
+import { getClientRoomsFromGameRooms, getJsonString, getParsed } from "./convertors";
 import { isPlayerObject, isValidAddShipsRequestData, isValidAttackRequestData, isValidPlayerObject, isValidRandomAttackRequestData, isValidRoomRequestData } from "./checkers";
 import fakeDB from '../services/db'
 import { BattleField } from "../services/battleField";
 
 import { AddShipRequestData, AddToRoomRequestData, AppPlayer, AttackRequestData, AttackResponseData,
-  BattleFieldShotResult, ClientRequest, GameRoom, IdWsMessages, Player,
+  BattleFieldShotResult, ClientGameRoom, ClientRequest, GameRoom, IdWsMessages, Player,
   Position, RandomAttackRequestData, RegResponseData, ResponseData, ServerResponseObj, ShotResultType
 } from "../interfaces";
 
@@ -20,6 +20,17 @@ function getFinishResponseMessage(winPlayerId: number): string {
   }
 
   return getJsonString(finishResponse);
+}
+
+function getWinnersResponseMessage(): string {
+  const data = fakeDB.getWinners();
+  const responseMessage = {
+    type: 'update_winners',
+    data: getJsonString(data),
+    id: 0,
+  }
+
+  return getJsonString(responseMessage);
 }
 
 function getRandomAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] | void {
@@ -113,8 +124,13 @@ function getAttackResponseMessage(clientMessage: ClientRequest): IdWsMessages[] 
   }
 
   if (isGameEnded) {
+    fakeDB.addWin(currentPlayerId);
+    fakeDB.finishGame(gameId);
+
     const finishResponseMessage = getFinishResponseMessage(currentPlayerId);
-    attackResponseMessages.push(finishResponseMessage);
+    const winnersResponseMessage = getWinnersResponseMessage();
+
+    attackResponseMessages.push(finishResponseMessage, winnersResponseMessage);
   } else {
     const nextTurnResponseMessage = getTurnResponseMessage(currentPlayerId);
     attackResponseMessages.push(nextTurnResponseMessage);
@@ -138,9 +154,10 @@ function getRoomWsIdMessages(gameRoom: GameRoom, messages: string[]): IdWsMessag
 function getAttackResponseDataArr(attackingPlayerId: number, shotResult: BattleFieldShotResult): AttackResponseData[] {
   const responseData: AttackResponseData[] = []
   const mainResponseData = getAttackResponseData(shotResult.result.position, attackingPlayerId, shotResult.result.type);
+
   responseData.push(mainResponseData);
   shotResult.missed.forEach((missedPosition) => {
-    const additionalMissedResponseData = getAttackResponseData(missedPosition, attackingPlayerId, shotResult.result.type);
+    const additionalMissedResponseData = getAttackResponseData(missedPosition, attackingPlayerId, 'miss');
     responseData.push(additionalMissedResponseData);
   })
 
@@ -172,21 +189,11 @@ function getAddShipsResponseMessage(clientMessage: ClientRequest): IdWsMessages[
   const currentPlayerId = fakeDB.getGameCurrentPlayerId(gameId);
 
   if (isGameStarted && gameRoom && typeof(currentPlayerId) === 'number') {
-    const startGameResponseData = {
-      ships: validAddShipsData.ships,
-      currentPlayerIndex: currentPlayerId,
-    }
-
-    const startGameResponse = {
-      ...clientMessage,
-      type: 'start_game',
-      data: JSON.stringify(startGameResponseData)
-    }
-
-    const startGameResponseMessage = JSON.stringify(startGameResponse);
     const turnGameResponseMessage = getTurnResponseMessage(currentPlayerId);
 
     const idMessages = gameRoom.roomUsers.map((player) => {
+      const startGameResponseMessage = getStartGameResponseMessage(clientMessage, player, currentPlayerId);
+
       return {
         wsId: player.index,
         messages: [startGameResponseMessage, turnGameResponseMessage],
@@ -196,6 +203,21 @@ function getAddShipsResponseMessage(clientMessage: ClientRequest): IdWsMessages[
     return idMessages;
   }
 
+}
+
+function getStartGameResponseMessage(clientMessage: ClientRequest, player: AppPlayer, currentPlayerId: number): string {
+  const startGameResponseData = {
+    ships: player.shipsData?.ships ?? [],
+    currentPlayerIndex: currentPlayerId,
+  }
+
+  const startGameResponse = {
+    ...clientMessage,
+    type: 'start_game',
+    data: JSON.stringify(startGameResponseData)
+  }
+
+  return JSON.stringify(startGameResponse);
 }
 
 function getTurnResponseMessage(currentPlayerId: number): string {
@@ -276,11 +298,12 @@ function getCreateRoomResponseMessage(clientMessage: ClientRequest, playerId: nu
   return responseMessageStr;
 }
 
-function getCreateRoomData(playerId: number): GameRoom[] {
+function getCreateRoomData(playerId: number): ClientGameRoom[] {
   fakeDB.createNewRoom(playerId);
-  const freeRooms = fakeDB.getFreeRooms();
+  const freeGameRooms = fakeDB.getFreeRooms();
 
-  return freeRooms;
+
+  return getClientRoomsFromGameRooms(freeGameRooms);
 }
 
 function getUpdateRoomResponseMessage(clientMessage: ClientRequest): string {
@@ -315,6 +338,7 @@ function getRegResponseMessage(clientMessage: ClientRequest, playerId: number): 
     ...(player as Player),
     index: playerId,
     battleField: new BattleField(),
+    wins: 0,
   }
 
   fakeDB.activatePlayer(appPlayer);

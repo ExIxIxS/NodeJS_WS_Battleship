@@ -53,7 +53,12 @@ class BattleField {
     return structuredClone(this.#battleField);
   }
 
-  setShips(ships: Ship[]) {
+  reset(): void {
+    this.#battleField = BattleField.getEmptyBattleField();
+    this.#ships = [];
+  }
+
+  setShips(ships: Ship[]): void {
     ships.forEach((ship) => {
       this.#addShipToBattleField(ship);
     })
@@ -65,7 +70,7 @@ class BattleField {
     switch(shotPosition) {
       case 'ship': {
         this.#battleField[shot.y][shot.x] = 'damaged';
-        return this.#handleShipDamage(shot);
+        return this.#getShipDamageResult(shot);
       }
       case 'empty': {
         this.#markCellsLikeMissed([shot]);
@@ -202,7 +207,7 @@ class BattleField {
 
   }
 
-  #handleShipDamage(shot: Position): BattleFieldShotResult {
+  #getShipDamageResult(shot: Position): BattleFieldShotResult {
     const ship = this.#getShipByCellPosition(shot);
     if (!ship) {
       return {
