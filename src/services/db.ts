@@ -1,14 +1,21 @@
 import { CustomWebSocket } from "../api_server/customWebSocket";
-import { AddShipRequestData, AppPlayer, Game, GameRoom, Winner } from "../interfaces";
+
+import {
+  AddShipRequestData,
+  AppPlayer,
+  Game,
+  GameRoom,
+  Winner,
+} from "../interfaces";
 
 class FakeDB {
   #playersList: AppPlayer[] = [];
   #wsIds: number[] = [];
-  #wsStorage:CustomWebSocket[] = [];
+  #wsStorage: CustomWebSocket[] = [];
   #gameRooms: GameRoom[] = [];
   #activeGames: Game[] = [];
 
-  addWin(winnerId: number) {
+  addWin(winnerId: number): void {
     const winner = this.getPlayerById(winnerId);
 
     if (winner) {
@@ -21,10 +28,8 @@ class FakeDB {
       return {
         name: player.name,
         wins: player.wins,
-      }
-    })
-
-    console.log('getWinners() --> ', winners);
+      };
+    });
 
     return winners;
   }
@@ -61,11 +66,13 @@ class FakeDB {
     const room = this.#gameRooms.find((room) => room.roomId === gameId);
     const currentPlayerId = this.getGameCurrentPlayerId(gameId);
 
-    if (!room || typeof(currentPlayerId) !== 'number') {
+    if (!room || typeof currentPlayerId !== "number") {
       return;
     }
 
-    const newCurrentPlayer = room.roomUsers.find((player) => player.index !== currentPlayerId);
+    const newCurrentPlayer = room.roomUsers.find(
+      (player) => player.index !== currentPlayerId
+    );
 
     if (!newCurrentPlayer) {
       return;
@@ -75,18 +82,20 @@ class FakeDB {
   }
 
   isGameStarted(gameId: number): boolean {
-    const gameRoom = this.#gameRooms.find((gameRoom) => gameRoom.roomId === gameId);
+    const gameRoom = this.#gameRooms.find(
+      (gameRoom) => gameRoom.roomId === gameId
+    );
 
     if (gameRoom) {
       return gameRoom.roomUsers.every((player) => {
         return !player.battleField.isBattleFieldEmpty;
-      })
+      });
     }
 
     return false;
   }
 
-  addWsToStorage(ws: CustomWebSocket) {
+  addWsToStorage(ws: CustomWebSocket): void {
     ws.id = this.getNextWsId();
     this.#wsStorage.push(ws);
   }
@@ -109,14 +118,6 @@ class FakeDB {
     });
   }
 
-  #deleteGame(roomId: number): void {
-    const gameIndex = this.#activeGames.findIndex((game) => game.roomId === roomId);
-
-    if (gameIndex >= 0) {
-      this.#activeGames.splice(gameIndex, 1);
-    }
-  }
-
   finishGame(roomId: number): void {
     this.#deleteGame(roomId);
 
@@ -126,17 +127,6 @@ class FakeDB {
         player.battleField.reset();
       });
     }
-  }
-
-  #getNewRoom(): GameRoom {
-    const newRoom: GameRoom = {
-      roomId: this.#gameRooms.length,
-      roomUsers: [],
-    }
-
-    this.#gameRooms.push(newRoom);
-
-    return newRoom;
   }
 
   createNewRoom(playerId: number): GameRoom | void {
@@ -150,9 +140,10 @@ class FakeDB {
     newRoom.roomUsers.push(roomCreator);
   }
 
-
   getFreeRooms(): GameRoom[] {
-    const freeRooms = this.#gameRooms.filter((room) => room.roomUsers.length < 2);
+    const freeRooms = this.#gameRooms.filter(
+      (room) => room.roomUsers.length < 2
+    );
 
     return freeRooms;
   }
@@ -173,7 +164,7 @@ class FakeDB {
     }
 
     gamePlayer.battleField.reset();
-    storageRoom.roomUsers.push(gamePlayer)
+    storageRoom.roomUsers.push(gamePlayer);
   }
 
   isPlayerInRoom(roomId: number, playerId: number): boolean {
@@ -183,8 +174,10 @@ class FakeDB {
       return false;
     }
 
-    const player = storageRoom.roomUsers.find((player) => player.index === playerId)
-    return (!!player);
+    const player = storageRoom.roomUsers.find(
+      (player) => player.index === playerId
+    );
+    return !!player;
   }
 
   getPlayers(): AppPlayer[] {
@@ -194,7 +187,7 @@ class FakeDB {
   }
 
   getPlayerByName(name: unknown): AppPlayer | void {
-    if (typeof name !== 'string') {
+    if (typeof name !== "string") {
       return;
     }
 
@@ -206,7 +199,7 @@ class FakeDB {
   }
 
   getPlayerById(id: unknown): AppPlayer | void {
-    if (typeof id !== 'number') {
+    if (typeof id !== "number") {
       return;
     }
 
@@ -217,7 +210,10 @@ class FakeDB {
     }
   }
 
-  getAttackedPlayer(gameId: number, attackingPlayerId: number): AppPlayer | void {
+  getAttackedPlayer(
+    gameId: number,
+    attackingPlayerId: number
+  ): AppPlayer | void {
     const room = this.getRoomById(gameId);
 
     if (!room) {
@@ -227,15 +223,36 @@ class FakeDB {
     return room.roomUsers.find((player) => player.index !== attackingPlayerId);
   }
 
-  addPlayer(newPlayer: AppPlayer): void {
-    this.#playersList.push(newPlayer);
-  }
-
   activatePlayer(player: AppPlayer): void {
     const existedPlayer = this.getPlayerById(player.name);
 
     if (!existedPlayer) {
-      this.addPlayer(player);
+      this.#addPlayer(player);
+    }
+  }
+
+  #addPlayer(newPlayer: AppPlayer): void {
+    this.#playersList.push(newPlayer);
+  }
+
+  #getNewRoom(): GameRoom {
+    const newRoom: GameRoom = {
+      roomId: this.#gameRooms.length,
+      roomUsers: [],
+    };
+
+    this.#gameRooms.push(newRoom);
+
+    return newRoom;
+  }
+
+  #deleteGame(roomId: number): void {
+    const gameIndex = this.#activeGames.findIndex(
+      (game) => game.roomId === roomId
+    );
+
+    if (gameIndex >= 0) {
+      this.#activeGames.splice(gameIndex, 1);
     }
   }
 }

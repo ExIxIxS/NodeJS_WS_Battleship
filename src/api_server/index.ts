@@ -1,32 +1,53 @@
-import WebSocket from 'ws';
+import WebSocket from "ws";
 
-import { CustomWebSocket } from './customWebSocket';
-import { handleClientRequest } from '../utils/clientRequestHandling';
-import fakeDB from '../services/db';
-
-const DEFAULT_WS_PORT = 3000;
+import { CustomWebSocket } from "./customWebSocket";
+import { handleClientRequest } from "../utils/clientRequestHandling";
+import fakeDB from "../services/db";
+import {
+  getServerMessageDatedTitle,
+  getServerMessageDatedTitleWithWsId,
+} from "../utils/messages";
+import { DEFAULT_WS_PORT, HOST } from "../constants/ports";
 
 const wsServerOptions = {
-  host: 'localhost',
-  port: DEFAULT_WS_PORT
+  host: HOST,
+  port: DEFAULT_WS_PORT,
 };
 
 const wsServer = new WebSocket.Server(wsServerOptions);
 
-// Event: 'connection' - Triggered when a new client connects
-wsServer.on('connection', (ws: CustomWebSocket) => {
+wsServer.on("connection", (ws: CustomWebSocket) => {
   fakeDB.addWsToStorage(ws);
-  console.log(`New client connected (wsId: ${ws.id})`);
+  console.log(
+    `${getServerMessageDatedTitleWithWsId(ws.id)} New client connected`
+  );
 
-  // Event: 'message' - Triggered when a message is received from the client
-  ws.on('message', (message) => {
-    handleClientRequest(message, ws)
+  ws.on("message", (message) => {
+    handleClientRequest(message, ws);
   });
 
-  // Event: 'close' - Triggered when the client closes the connection
-  ws.on('close', () => {
-    console.log(`Client disconnected (wsId: ${ws.id})`);
+  ws.on("close", () => {
+    console.log(
+      `${getServerMessageDatedTitleWithWsId(ws.id)} Client disconnected`
+    );
   });
 });
+
+function closeWebSocketServer() {
+  wsServer.close((error) => {
+    if (error) {
+      console.error(
+        `${getServerMessageDatedTitle()} Error closing WS Server: ${error}`
+      );
+    } else {
+      console.log(`${getServerMessageDatedTitle()} WS server closed`);
+    }
+
+    process.exit(0);
+  });
+}
+
+process.on("SIGINT", closeWebSocketServer);
+process.on("SIGTERM", closeWebSocketServer);
 
 export default wsServer;

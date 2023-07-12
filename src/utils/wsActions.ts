@@ -1,8 +1,12 @@
 import { CustomWebSocket } from "../api_server/customWebSocket";
-import { IdWsMessages } from "../interfaces";
 import fakeDB from "../services/db";
 
-function sentToAllWs(message: string, callBack?: (socket: CustomWebSocket, message: string) => void) {
+import { IdWsMessages } from "../interfaces";
+
+function sentToAllWs(
+  message: string,
+  callBack?: (socket: CustomWebSocket, message: string) => void
+): void {
   const activeWs: CustomWebSocket[] = fakeDB.getActiveWs();
 
   activeWs.forEach((ws) => {
@@ -11,10 +15,13 @@ function sentToAllWs(message: string, callBack?: (socket: CustomWebSocket, messa
     if (callBack) {
       callBack(ws, message);
     }
-  })
+  });
 }
 
-function sentToWsById(idMessages: IdWsMessages[], callBack?: (socket: CustomWebSocket, message: string) => void) {
+function sentToWsById(
+  idMessages: IdWsMessages[],
+  callBack?: (socket: CustomWebSocket, message: string) => void
+): void {
   const activeWs: CustomWebSocket[] = fakeDB.getActiveWs();
 
   idMessages.forEach((idMessage) => {
@@ -27,15 +34,9 @@ function sentToWsById(idMessages: IdWsMessages[], callBack?: (socket: CustomWebS
         if (callBack) {
           callBack(ws, message);
         }
-
-      })
+      });
     }
-  })
+  });
 }
 
-
-
-export {
-  sentToAllWs,
-  sentToWsById,
-}
+export { sentToAllWs, sentToWsById };

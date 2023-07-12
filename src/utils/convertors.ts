@@ -6,13 +6,13 @@ function getJsonString(item: unknown): string {
   let resultStr: string;
 
   try {
-    resultStr = (isObj(item))
+    resultStr = isObj(item)
       ? JSON.stringify(item)
-      : JSON.stringify({message: item});
+      : JSON.stringify({ message: item });
   } catch {
     resultStr = JSON.stringify({
       status: 500,
-      message: SERVER_JSON_ERROR_MESSAGE
+      message: SERVER_JSON_ERROR_MESSAGE,
     });
   }
 
@@ -20,9 +20,7 @@ function getJsonString(item: unknown): string {
 }
 
 function getParsed(str: unknown): unknown {
-  return (typeof(str) === 'string')
-    ? JSON.parse(str)
-    : str;
+  return typeof str === "string" ? JSON.parse(str) : str;
 }
 
 function getClientRoomsFromGameRooms(gameRoom: GameRoom[]): ClientGameRoom[] {
@@ -31,18 +29,14 @@ function getClientRoomsFromGameRooms(gameRoom: GameRoom[]): ClientGameRoom[] {
       return {
         name: player.name,
         index: player.index,
-      }
+      };
     });
 
-  return {
-    ...gameRoom,
-    roomUsers: clientUsers,
-  }});
-
+    return {
+      ...gameRoom,
+      roomUsers: clientUsers,
+    };
+  });
 }
 
-export {
-  getJsonString,
-  getParsed,
-  getClientRoomsFromGameRooms
-}
+export { getJsonString, getParsed, getClientRoomsFromGameRooms };
