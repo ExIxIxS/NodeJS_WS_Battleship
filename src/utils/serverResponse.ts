@@ -400,23 +400,44 @@ function getRegResponseMessage(
   clientMessage: ClientRequest,
   playerId: number
 ): string {
-  const player = getParsed(clientMessage.data);
+  const parsedPlayer = getParsed(clientMessage.data);
 
-  if (!isPlayerObject(player)) {
+  if (!isPlayerObject(parsedPlayer)) {
     const failMessage = "recived data isn`t a Player object";
     const failResponseData = getRegResponseData("not found", failMessage);
 
     return getResponseStr(clientMessage, failResponseData);
   }
 
-  if (!isValidPlayerObject(player as Player)) {
+  const player: Player = {...parsedPlayer as Player};
+
+  if (!isValidPlayerObject(player)) {
     const failMessage = "Invalid format of login or password";
     const failResponseData = getRegResponseData(
-      (player as Player).name,
+      player.name,
       failMessage
     );
 
     return getResponseStr(clientMessage, failResponseData);
+  }
+
+  const existedPlayer = fakeDB.getPlayerByName(player.name);
+  if (existedPlayer) {
+    const isPassValid = existedPlayer.password === player.password;
+
+    if (!isPassValid) {
+      const failMessage = "Invalid password";
+      const failResponseData = getRegResponseData(player.name,failMessage);
+
+      return getResponseStr(clientMessage, failResponseData);
+    }
+
+    if (fakeDB.isPlayerOnServer(existedPlayer.index)) {
+      const failMessage = "Player is already on Server";
+      const failResponseData = getRegResponseData(player.name,failMessage);
+
+      return getResponseStr(clientMessage, failResponseData);
+    }
   }
 
   const appPlayer: AppPlayer = {

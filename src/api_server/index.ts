@@ -27,6 +27,7 @@ wsServer.on("connection", (ws: CustomWebSocket) => {
   });
 
   ws.on("close", () => {
+    fakeDB.removeWsFromStorage(ws.id);
     console.log(
       `${getServerMessageDatedTitleWithWsId(ws.id)} Client disconnected`
     );

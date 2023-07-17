@@ -11,6 +11,7 @@ import {
 class FakeDB {
   #playersList: AppPlayer[] = [];
   #wsIds: number[] = [];
+  #activeWsIds: number[] = [];
   #wsStorage: CustomWebSocket[] = [];
   #gameRooms: GameRoom[] = [];
   #activeGames: Game[] = [];
@@ -98,10 +99,23 @@ class FakeDB {
   addWsToStorage(ws: CustomWebSocket): void {
     ws.id = this.getNextWsId();
     this.#wsStorage.push(ws);
+    this.#activeWsIds.push(ws.id);
   }
 
   getActiveWs(): CustomWebSocket[] {
     return this.#wsStorage;
+  }
+
+  removeWsFromStorage(wsId: number): void {
+    const wsIndex = this.#wsStorage.findIndex((ws) => ws.id === wsId);
+    if (wsIndex >= 0) {
+      this.#wsStorage.splice(wsIndex, 1);
+      this.#deActivateWsId(wsId);
+    }
+  }
+
+  isPlayerOnServer(playerId: number): boolean {
+    return this.#activeWsIds.includes(playerId);
   }
 
   getNextWsId(): number {
@@ -194,7 +208,7 @@ class FakeDB {
     const player = this.#playersList.find((player) => player.name === name);
 
     if (player) {
-      return { ...player };
+      return player;
     }
   }
 
@@ -224,10 +238,17 @@ class FakeDB {
   }
 
   activatePlayer(player: AppPlayer): void {
-    const existedPlayer = this.getPlayerById(player.name);
+    const existedPlayer = this.getPlayerById(player.index);
 
     if (!existedPlayer) {
       this.#addPlayer(player);
+    }
+  }
+
+  #deActivateWsId(wsId: number) {
+    const wsIdIndex = this.#activeWsIds.findIndex((activeWsId) => activeWsId === wsId);
+    if (wsIdIndex  >= 0) {
+      this.#activeWsIds.splice(wsIdIndex, 1);
     }
   }
 
